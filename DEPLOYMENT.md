@@ -14,17 +14,17 @@
 环境变量（已配置 Production + Development）:
 `GOOGLE_SERVICE_ACCOUNT_KEY`(base64) · `GCP_PROJECT` · `GCP_REGION` · `GEMINI_MODEL`
 
-## 🔴 GitHub 仓库（待创建 · 卡在登录）
+## 🟢 GitHub 仓库（已推送 · 个人账号）
 
-> **尚未创建。** 原因：本机 `gh` CLI 当前仅登录了**公司账号** `Jiawei-li_imai`，
-> 个人账号 `yolowinnn` 未登录。为避免把 repo 误建到公司账号，已停下等待。
+- **仓库地址**: https://github.com/yolowinnn/ChordScribe
+- SSH (个人账号专用别名): `git@github-yolo:yolowinnn/ChordScribe.git`
+- 账号: `yolowinnn`（个人，**非公司 `Jiawei-li_imai`**）
 
-待你在终端执行后我再创建：
-```bash
-gh auth login            # 用浏览器登录，务必选 yolowinnn 个人账号
-gh auth switch --user yolowinnn
-gh api user --jq .login  # 确认输出 yolowinnn
-```
-确认后我会在 `yolowinnn` 下建 repo 并把地址补到这里。
+> ⚠️ 重要：本机默认 `github.com` SSH 绑的是**公司账号**。推这个个人 repo 必须用
+> SSH config 里的 **`github-yolo`** 别名（对应 `~/.ssh/id_ed25519_yolo`）：
+> ```bash
+> git remote set-url origin git@github-yolo:yolowinnn/ChordScribe.git
+> git push origin main
+> ```
 
-<!-- REPO_URL: (待创建) -->
+REPO_URL: https://github.com/yolowinnn/ChordScribe

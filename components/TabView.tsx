@@ -5,8 +5,6 @@ function renderLine(line: TabLine, idx: number) {
   const chords = [...(line.chords ?? [])].sort((a, b) => a.pos - b.pos);
   const instrumental = lyric.trim() === "";
 
-  // Build positioned segments: each segment carries its lyric chunk plus the
-  // chord that sits above its first character.
   const segs: { chord: string | null; text: string }[] = [];
   if (chords.length === 0) {
     segs.push({ chord: null, text: lyric || "♪" });
@@ -38,46 +36,43 @@ function renderLine(line: TabLine, idx: number) {
 
 export default function TabView({ state }: { state: TabState }) {
   const m = state.meta;
+  const pills: [string, string][] = [
+    ["调性", m.key],
+    ["变调夹", m.capo],
+    ["速度", `${m.bpm} BPM`],
+    ["拍号", m.timeSignature],
+    ["调弦", m.tuning],
+  ];
   return (
     <div className="sheet">
       <div className="metabar">
-        <div className="t">
-          {m.title}
-          <small>{m.artist}</small>
-        </div>
-        <div className="kv">
-          <span>调性</span>
-          <b>{m.key}</b>
-        </div>
-        <div className="kv">
-          <span>变调夹</span>
-          <b>{m.capo}</b>
-        </div>
-        <div className="kv">
-          <span>速度</span>
-          <b>{m.bpm} BPM</b>
-        </div>
-        <div className="kv">
-          <span>拍号</span>
-          <b>{m.timeSignature}</b>
-        </div>
-        <div className="kv">
-          <span>调弦</span>
-          <b>{m.tuning}</b>
+        <div className="ttl">{m.title}</div>
+        <div className="art">{m.artist}</div>
+        <div className="meta-pills">
+          {pills.map(([k, v]) => (
+            <div className="meta-pill" key={k}>
+              <span className="k">{k}</span>
+              <span className="v">{v}</span>
+            </div>
+          ))}
         </div>
       </div>
 
       {state.sections?.map((sec, i) => (
-        <div className="section" key={i}>
-          <div className="shead">
-            <span className="sname">{sec.name}</span>
-            {sec.strumming && <span className="strum">{sec.strumming}</span>}
+        <div className="section-card" key={i}>
+          <div className="sec-head">
+            <span className="sec-name">{sec.name}</span>
+            {sec.strumming && <span className="sec-strum">{sec.strumming}</span>}
             {sec.progression?.length > 0 && (
-              <span className="prog">{sec.progression.join("  ·  ")}</span>
+              <span className="sec-prog">
+                {sec.progression.map((c, j) => (
+                  <b key={j}>{c}</b>
+                ))}
+              </span>
             )}
           </div>
           {sec.lines?.map((line, j) => renderLine(line, j))}
-          {sec.notes && <div className="snotes">💡 {sec.notes}</div>}
+          {sec.notes && <div className="sec-notes">💡 {sec.notes}</div>}
         </div>
       ))}
     </div>

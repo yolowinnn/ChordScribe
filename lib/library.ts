@@ -5,14 +5,20 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { User } from "firebase/auth";
 import { firebaseDb } from "./firebase";
 import { SongCandidate, TabState } from "./types";
+import { InstrumentId } from "./instruments";
 
 export interface SavedTab {
-  id: string; // = String(song.id); one saved tab per song
+  id: string; // = `${instrument}:${song.id}` — one saved tab per song+instrument
+  instrument: InstrumentId;
   song: SongCandidate;
   state: TabState;
   rounds: number;
   createdAt: number;
   updatedAt: number;
+}
+
+export function tabId(instrument: InstrumentId, songId: number) {
+  return `${instrument}:${songId}`;
 }
 
 type TabMap = Record<string, SavedTab>;
@@ -62,12 +68,13 @@ export function useLibrary(user: User | null) {
   useEffect(() => {
     let cancelled = false;
     async function sync() {
-      if (!user) {
+      const db = firebaseDb();
+      if (!user || !db) {
         setSynced(false);
         return;
       }
       try {
-        const ref = doc(firebaseDb(), "chordscribe", user.uid);
+        const ref = doc(db, "chordscribe", user.uid);
         const snap = await getDoc(ref);
         const remote: TabMap = snap.exists()
           ? JSON.parse(snap.data().json || "{}")
@@ -97,11 +104,12 @@ export function useLibrary(user: User | null) {
 
   const pushCloud = useCallback(
     (next: TabMap) => {
-      if (!user) return;
+      const db = firebaseDb();
+      if (!user || !db) return;
       if (pushTimer.current) clearTimeout(pushTimer.current);
       pushTimer.current = setTimeout(async () => {
         try {
-          await setDoc(doc(firebaseDb(), "chordscribe", user.uid), {
+          await setDoc(doc(db, "chordscribe", user.uid), {
             json: JSON.stringify(next),
             updatedAt: Date.now(),
             email: user.email || "",
@@ -115,12 +123,18 @@ export function useLibrary(user: User | null) {
   );
 
   const saveTab = useCallback(
-    (song: SongCandidate, state: TabState, rounds: number) => {
+    (
+      song: SongCandidate,
+      state: TabState,
+      rounds: number,
+      instrument: InstrumentId
+    ) => {
       setMap((prev) => {
-        const id = String(song.id);
+        const id = tabId(instrument, song.id);
         const now = Date.now();
         const rec: SavedTab = {
           id,
+          instrument,
           song,
           state,
           rounds,

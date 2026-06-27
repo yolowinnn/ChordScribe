@@ -265,6 +265,37 @@ h1, h2, h3, .display { font-family: var(--font-display), var(--font-body), sans-
 .modal .close { position: absolute; }
 .modal-foot { margin-top: 18px; font-size: 12px; color: var(--faint); text-align: center; line-height: 1.5; }
 
+/* ---------- instrument picker ---------- */
+.inst-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 8px 0 6px; }
+.inst-card {
+  position: relative; background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+  padding: 18px 16px; cursor: pointer; transition: all .15s; overflow: hidden;
+}
+.inst-card:hover { transform: translateY(-2px); border-color: var(--border-strong); }
+.inst-card.active { border-color: var(--ic); box-shadow: 0 0 0 1px var(--ic), 0 14px 30px -16px var(--ic); }
+.inst-card .iglow { position: absolute; inset: 0; opacity: .14; background: radial-gradient(70% 70% at 50% 0%, var(--ic), transparent 70%); pointer-events: none; }
+.inst-card .iemoji { font-size: 30px; }
+.inst-card .ilabel { font-weight: 700; font-size: 16px; margin-top: 8px; font-family: var(--font-display); }
+.inst-card .iname { font-size: 11px; color: var(--faint); letter-spacing: .5px; text-transform: uppercase; }
+.inst-card .itag { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+.inst-card .icheck { position: absolute; top: 12px; right: 12px; width: 20px; height: 20px; border-radius: 50%; background: var(--ic); color: #0a0a0f; display: none; place-items: center; font-size: 12px; font-weight: 800; }
+.inst-card.active .icheck { display: grid; }
+.inst-sub { font-size: 12px; color: var(--faint); margin: 18px 4px 8px; }
+
+/* ---------- melody / tab blocks ---------- */
+.blk-label { display: inline-block; font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.melody { margin: 12px 0; }
+.melody-body { font-family: var(--font-display); font-size: 15px; color: var(--teal); background: rgba(52,211,153,.07); border: 1px solid rgba(52,211,153,.18); border-radius: 10px; padding: 10px 14px; line-height: 1.7; }
+.tabblock { margin: 12px 0; }
+.tabblock pre { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; color: var(--sky); background: rgba(86,184,255,.06); border: 1px solid rgba(86,184,255,.16); border-radius: 10px; padding: 12px 14px; overflow-x: auto; line-height: 1.5; margin: 0; }
+
+/* instrument filter + lib badge */
+.inst-filter { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 18px; }
+.fchip { font-size: 13px; color: var(--muted); background: var(--panel); border: 1px solid var(--border); padding: 7px 14px; border-radius: 999px; cursor: pointer; transition: all .14s; }
+.fchip:hover { color: var(--text); }
+.fchip.active { color: #0a0a0f; background: var(--amber); border-color: var(--amber); font-weight: 600; }
+.lib-card .ibadge { position: absolute; top: 14px; right: 14px; font-size: 18px; }
+
 /* ---------- back link + footer ---------- */
 .backlink { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 14px; cursor: pointer; margin: 6px 0 16px; background: none; border: none; font-family: inherit; }
 .backlink:hover { color: var(--text); }

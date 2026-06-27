@@ -18,7 +18,7 @@ import {
   onAuthStateChanged,
   User,
 } from "firebase/auth";
-import { firebaseAuth } from "./firebase";
+import { firebaseAuth, firebaseConfigured } from "./firebase";
 
 const FRIENDLY: Record<string, string> = {
   "auth/invalid-email": "邮箱格式不正确",
@@ -43,6 +43,7 @@ export function friendlyAuthErr(code: string): string {
 interface AuthCtx {
   user: User | null;
   ready: boolean;
+  configured: boolean;
   signInGoogle: () => Promise<void>;
   signInEmail: (e: string, p: string) => Promise<{ ok?: boolean; error?: string }>;
   signUpEmail: (e: string, p: string) => Promise<{ ok?: boolean; error?: string }>;
@@ -51,14 +52,21 @@ interface AuthCtx {
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
+const NOT_CONFIGURED = "云端账户尚未配置（仅本地保存）";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
+  const configured = firebaseConfigured();
   let signingIn = false;
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(firebaseAuth(), (u) => {
+    const auth = firebaseAuth();
+    if (!auth) {
+      setReady(true);
+      return;
+    }
+    const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setReady(true);
     });
@@ -66,14 +74,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function signInGoogle() {
+    const auth = firebaseAuth();
+    if (!auth) throw new Error(NOT_CONFIGURED);
     if (signingIn) return;
     signingIn = true;
     try {
-      await signInWithPopup(firebaseAuth(), new GoogleAuthProvider());
+      await signInWithPopup(auth, new GoogleAuthProvider());
     } catch (e: any) {
       const code = e?.code || e?.message || "";
       if (/popup|cancelled-popup|operation-not-supported/i.test(code)) {
-        await signInWithRedirect(firebaseAuth(), new GoogleAuthProvider());
+        await signInWithRedirect(auth, new GoogleAuthProvider());
       } else {
         throw new Error(friendlyAuthErr(code));
       }
@@ -83,36 +93,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signInEmail(email: string, pw: string) {
+    const auth = firebaseAuth();
+    if (!auth) return { error: NOT_CONFIGURED };
     try {
-      await signInWithEmailAndPassword(firebaseAuth(), email, pw);
+      await signInWithEmailAndPassword(auth, email, pw);
       return { ok: true };
     } catch (e: any) {
       return { error: friendlyAuthErr(e?.code || e?.message) };
     }
   }
   async function signUpEmail(email: string, pw: string) {
+    const auth = firebaseAuth();
+    if (!auth) return { error: NOT_CONFIGURED };
     try {
-      await createUserWithEmailAndPassword(firebaseAuth(), email, pw);
+      await createUserWithEmailAndPassword(auth, email, pw);
       return { ok: true };
     } catch (e: any) {
       return { error: friendlyAuthErr(e?.code || e?.message) };
     }
   }
   async function resetEmail(email: string) {
+    const auth = firebaseAuth();
+    if (!auth) return { error: NOT_CONFIGURED };
     try {
-      await sendPasswordResetEmail(firebaseAuth(), email);
+      await sendPasswordResetEmail(auth, email);
       return { ok: true };
     } catch (e: any) {
       return { error: friendlyAuthErr(e?.code || e?.message) };
     }
   }
   async function signOut() {
-    await fbSignOut(firebaseAuth());
+    const auth = firebaseAuth();
+    if (auth) await fbSignOut(auth);
   }
 
   return (
     <Ctx.Provider
-      value={{ user, ready, signInGoogle, signInEmail, signUpEmail, resetEmail, signOut }}
+      value={{ user, ready, configured, signInGoogle, signInEmail, signUpEmail, resetEmail, signOut }}
     >
       {children}
     </Ctx.Provider>

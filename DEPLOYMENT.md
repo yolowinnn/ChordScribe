@@ -1,56 +1,82 @@
-# ChordScribe — 部署信息
+# ChordScribe — 部署与配置
 
-## v2 新增：账户登录 + 谱库持久化 + 高级 UI
+## 🟢 线上地址
 
-- **账户体系**：复用「IELTS_learning」同一套 Firebase 项目 `ielts-study-9a0f5`
-  （Google 登录 + 邮箱密码登录），同一账号通用。代码：`lib/auth.tsx` / `lib/firebase.ts`。
-- **谱库持久化**：解析一次永久存储，秒开不重复解析。
-  - 本地：`localStorage`（无需登录即可用，按浏览器保存）
-  - 云端：Firestore `chordscribe/{uid}`（登录后跨设备同步，登录时本地↔云端智能合并）
-  - 代码：`lib/library.ts`
-- **高级界面**：渐变 hero / 玻璃拟态 / 动效循环进度 / 谱库卡片 / 登录弹窗。
+- **Cloudflare Pages（主，国内可达）**: https://chordscribe.pages.dev
+- GitHub 仓库（个人）: https://github.com/yolowinnn/ChordScribe
+  （推送用 `github-yolo` SSH 别名：`git@github-yolo:yolowinnn/ChordScribe.git`）
+- 旧 Vercel 部署（境外，备用）: https://chordscribe-lake.vercel.app
 
-### ⚙️ 想让「云端同步 + Google 登录」完全生效，需在 Firebase 控制台做 2 个一次性操作
-> 项目：`ielts-study-9a0f5`（你 IELTS App 的同一个 Firebase 项目）。
-> 不做也不影响使用——会自动降级为「仅本地保存 + 邮箱登录」。
+## 架构一句话
 
-1. **Firestore 规则**（让登录用户能存自己的谱）。Firestore → 规则 → 在 `match /databases/{db}/documents` 内加：
-   ```
-   match /chordscribe/{uid} {
-     allow read, write: if request.auth != null && request.auth.uid == uid;
-   }
-   ```
-2. **授权域名**（Google 登录弹窗需要）。Authentication → Settings → Authorized domains → 添加：
-   `chordscribe-lake.vercel.app`
-   （邮箱密码登录不需要这一步，开箱即用。）
+静态前端（Next.js 导出）+ Cloudflare Pages Functions（`functions/api/*`）调用
+Vertex Gemini 2.5 Pro。账户/谱库用**独立 Firebase 项目**。详见 `PRODUCT.md`。
 
 ---
 
-## 🟢 Vercel（已部署 · 个人账号）
+## 一、Cloudflare（已部署）
 
-- **线上地址（公开可访问）**: https://chordscribe-lake.vercel.app
-- Vercel 账号 / scope: `ljw2556826312-6708s-projects`（个人，**非企业**）
-- 项目名: `chordscribe`
-- 项目控制台: https://vercel.com/ljw2556826312-6708s-projects/chordscribe
+- 账号: `Ljw2556826312@gmail.com`，Account ID `5cf6ad023efbef7a1da68509b1b0da1e`
+- Pages 项目: `chordscribe`，生产分支 `main`
+- 已配置 Secret：`VERTEX_SA_KEY`（Vertex service account JSON，项目 `im-drawing-462011`）
 
-线上已验证可用：
-- `POST /api/search`  → 网易云搜歌（已加 X-Real-IP 解决数据中心 IP 被墙）
-- `POST /api/round`   → Gemini 2.5 Pro 单轮转译（约 85s，前端循环调用最多 5 轮）
+手动部署（本地）:
+```bash
+npm run build
+CLOUDFLARE_API_TOKEN=<token> CLOUDFLARE_ACCOUNT_ID=5cf6ad023efbef7a1da68509b1b0da1e \
+  npx wrangler pages deploy out --project-name=chordscribe --branch=main
+```
 
-环境变量（已配置 Production + Development）:
-`GOOGLE_SERVICE_ACCOUNT_KEY`(base64) · `GCP_PROJECT` · `GCP_REGION` · `GEMINI_MODEL`
+## 二、main 分支自动部署（二选一）
 
-## 🟢 GitHub 仓库（已推送 · 个人账号）
+**方式 A · GitHub Actions（已内置 `.github/workflows/deploy.yml`，推荐）**
+在 GitHub 仓库 `yolowinnn/ChordScribe` → Settings → Secrets and variables → Actions 添加：
+| Secret | 值 |
+|--------|----|
+| `CLOUDFLARE_API_TOKEN` | `cfut_...`（你给的 Cloudflare token） |
+| `CLOUDFLARE_ACCOUNT_ID` | `5cf6ad023efbef7a1da68509b1b0da1e` |
+| `NEXT_PUBLIC_FIREBASE_*` | （可选）见下方 Firebase 配置，配齐才开启云端 |
 
-- **仓库地址**: https://github.com/yolowinnn/ChordScribe
-- SSH (个人账号专用别名): `git@github-yolo:yolowinnn/ChordScribe.git`
-- 账号: `yolowinnn`（个人，**非公司 `Jiawei-li_imai`**）
+之后每次 push 到 main 自动构建 + 部署。也可在 Actions 页手动触发。
 
-> ⚠️ 重要：本机默认 `github.com` SSH 绑的是**公司账号**。推这个个人 repo 必须用
-> SSH config 里的 **`github-yolo`** 别名（对应 `~/.ssh/id_ed25519_yolo`）：
-> ```bash
-> git remote set-url origin git@github-yolo:yolowinnn/ChordScribe.git
-> git push origin main
-> ```
+**方式 B · Cloudflare 控制台连 Git**
+Cloudflare → Workers & Pages → chordscribe → Settings → Build → Connect to Git，
+选 `yolowinnn/ChordScribe`，分支 `main`，构建命令 `npm run build`，输出目录 `out`。
+（需在控制台授权 GitHub，一次性。）
+
+## 三、独立 Firebase 项目（账户 + 谱库，需你创建一次）
+
+> 与雅思项目分开：**一个产品一个 Firebase 项目 / 一个数据库**，互不干扰。
+> 不配置也能用（自动降级为「仅本地保存」），配置后才有登录 + 云端跨设备同步。
+
+1. https://console.firebase.google.com → 新建项目，如 `chordscribe`（免费 Spark，一个 Google 账号可建多个项目）。
+2. Authentication → 开启 **Google** 和 **Email/Password** 登录方式。
+3. Authentication → Settings → Authorized domains → 添加 `chordscribe.pages.dev`（Google 登录需要）。
+4. Firestore Database → 创建（生产模式）→ 规则加：
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{db}/documents {
+       match /chordscribe/{uid} {
+         allow read, write: if request.auth != null && request.auth.uid == uid;
+       }
+     }
+   }
+   ```
+5. 项目设置 → 你的应用 → 添加 Web 应用，拿到 firebaseConfig，把 6 个值填到 GitHub Secrets：
+   `NEXT_PUBLIC_FIREBASE_API_KEY` / `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` /
+   `NEXT_PUBLIC_FIREBASE_PROJECT_ID` / `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` /
+   `NEXT_PUBLIC_FIREBASE_SENDER_ID` / `NEXT_PUBLIC_FIREBASE_APP_ID`
+6. 重新触发部署（push 或 Actions 手动运行）。完成后登录 + 云端谱库即生效。
+
+本地开发时把同样的值写进 `.env.local`（已 gitignore）。
+
+## 四、环境变量一览
+
+| 名称 | 用途 | 配在哪 |
+|------|------|--------|
+| `VERTEX_SA_KEY` | Vertex SA JSON（Gemini 鉴权） | Cloudflare Pages Secret ✅已配 |
+| `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` | CI 部署 | GitHub Secrets |
+| `NEXT_PUBLIC_FIREBASE_*` | 账户 + 谱库（独立项目） | GitHub Secrets / `.env.local` |
 
 REPO_URL: https://github.com/yolowinnn/ChordScribe

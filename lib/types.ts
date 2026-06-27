@@ -1,3 +1,5 @@
+import { InstrumentId } from "./instruments";
+
 export interface SongCandidate {
   id: number;
   name: string;
@@ -7,10 +9,8 @@ export interface SongCandidate {
 }
 
 export interface ChordMark {
-  // chord symbol, e.g. "G", "Em7", "Cadd9"
-  chord: string;
-  // character index in the lyric where the chord change happens (0-based)
-  pos: number;
+  chord: string; // e.g. "G", "Em7", "Cadd9", "D/F#"
+  pos: number; // character index in the lyric where the chord change happens
 }
 
 export interface TabLine {
@@ -19,31 +19,32 @@ export interface TabLine {
 }
 
 export interface TabSection {
-  // e.g. "Intro", "Verse 1", "Chorus", "Bridge", "Outro"
-  name: string;
-  // strumming / picking pattern description, e.g. "↓ ↓↑ ↑↓↑" or "T 1 2 3"
-  strumming: string;
-  // bare chord progression for the section, e.g. ["G","D","Em","C"]
-  progression: string[];
-  lines: TabLine[];
+  name: string; // "Intro", "Verse 1", "Chorus", "Bridge", "Outro"
+  pattern: string; // 节奏/演奏型：扫弦/分解/律动/弓法
+  progression: string[]; // 和弦进行（和弦型乐器）
+  lines: TabLine[]; // 和弦-歌词对位（和弦型乐器）
+  tab?: string; // ASCII 六线/四线谱 riff（吉他/贝斯）
+  melody?: string; // 旋律音名序列（钢琴右手/小提琴/大提琴）
   notes?: string;
 }
 
 export interface TabMeta {
   title: string;
   artist: string;
-  key: string;        // e.g. "G major"
-  capo: string;       // e.g. "Capo 2" or "无变调夹"
+  instrument: InstrumentId;
+  key: string; // "A major"
+  capo: string; // "Capo 2" / "无变调夹" / "—"
   bpm: number;
-  timeSignature: string; // e.g. "4/4"
-  tuning: string;     // e.g. "标准调弦 EADGBE"
+  timeSignature: string; // "4/4"
+  tuning: string; // "标准调弦 EADGBE"
+  difficulty?: string; // "入门" / "进阶" 等
 }
 
 export interface TabState {
   meta: TabMeta;
-  structure: string[];      // ordered list of section names
+  structure: string[];
   sections: TabSection[];
-  confidence: number;       // 0-1, model's self-assessed confidence
-  done: boolean;            // model says transcription is complete
-  roundSummary: string;     // what this round did, shown in the progress log
+  confidence: number;
+  done: boolean;
+  roundSummary: string;
 }

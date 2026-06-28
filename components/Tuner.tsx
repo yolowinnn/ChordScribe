@@ -42,7 +42,6 @@ export default function Tuner({ onClose }: { onClose: () => void }) {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const rafRef = useRef<number | null>(null);
   const bufRef = useRef<Float32Array<ArrayBuffer> | null>(null);
-  const lastRef = useRef(0);
   const instRef = useRef(inst);
   useEffect(() => { instRef.current = inst; }, [inst]);
 
@@ -76,24 +75,34 @@ export default function Tuner({ onClose }: { onClose: () => void }) {
     setMicErr(null);
     stopTone();
     try {
+      // 先在用户手势内创建并 resume AudioContext —— 否则 await 之后再建会处于 suspended，
+      // 分析器读到的全是静音，导致永远检测不到。
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      micCtxRef.current = ctx;
+      ctx.resume().catch(() => {}); // 不 await，避免无手势时挂起阻塞后续流程
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: false, autoGainControl: false, noiseSuppression: false },
       });
       streamRef.current = stream;
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      micCtxRef.current = ctx;
+      ctx.resume().catch(() => {});
+
       const src = ctx.createMediaStreamSource(stream);
       const an = ctx.createAnalyser();
       an.fftSize = 4096;
       src.connect(an);
+      // 接一条零增益到 destination，确保音频图被驱动（部分浏览器不连到输出就不处理）
+      const sink = ctx.createGain();
+      sink.gain.value = 0;
+      an.connect(sink).connect(ctx.destination);
       analyserRef.current = an;
       bufRef.current = new Float32Array(an.fftSize);
-      const loop = (ts: number) => {
-        rafRef.current = requestAnimationFrame(loop);
-        if (ts - lastRef.current < 60) return; // 节流 ~16fps，省 CPU
-        lastRef.current = ts;
+
+      // 用 setInterval 而非 rAF：后台/失焦标签页 rAF 会被暂停，setInterval 仍稳定触发
+      const tick = () => {
         const an2 = analyserRef.current, buf = bufRef.current, c = micCtxRef.current;
         if (!an2 || !buf || !c) return;
+        if (c.state === "suspended") c.resume().catch(() => {});
         an2.getFloatTimeDomainData(buf);
         const f = autoCorrelate(buf, c.sampleRate);
         if (f > 0) {
@@ -104,14 +113,14 @@ export default function Tuner({ onClose }: { onClose: () => void }) {
           setReading(null);
         }
       };
-      rafRef.current = requestAnimationFrame(loop);
+      rafRef.current = window.setInterval(tick, 70); // ~14fps，足够调音且省 CPU
     } catch (e: any) {
       setMicErr(e?.name === "NotAllowedError" ? "麦克风权限被拒绝，请在浏览器允许后重试" : "无法访问麦克风：" + (e?.message || e));
       setMode("tone");
     }
   }
   function stopMic() {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (rafRef.current) clearInterval(rafRef.current);
     rafRef.current = null;
     if (streamRef.current) { streamRef.current.getTracks().forEach((t) => t.stop()); streamRef.current = null; }
     if (micCtxRef.current) { micCtxRef.current.close().catch(() => {}); micCtxRef.current = null; }

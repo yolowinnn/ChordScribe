@@ -11,6 +11,18 @@ export async function searchSongs(query: string): Promise<SongCandidate[]> {
   return data.songs || [];
 }
 
+/** Fetch official lyrics (NetEase) — more accurate than Gemini transcription. */
+export async function fetchLyrics(songId: number): Promise<string> {
+  try {
+    const res = await fetch(`/api/lyrics?id=${songId}`);
+    if (!res.ok) return "";
+    const data = await res.json();
+    return data.lyric || "";
+  } catch {
+    return "";
+  }
+}
+
 /** Fetch the original audio via the CF proxy and base64-encode it in-browser. */
 export async function fetchAudioB64(songId: number): Promise<string> {
   const res = await fetch(`/api/audio?id=${songId}`);
@@ -44,9 +56,10 @@ export async function runRound(
   prev: TabState | null,
   hint: string,
   instrument: InstrumentId,
-  audioB64: string
+  audioB64: string,
+  lyrics: string
 ): Promise<TabState> {
-  const body = buildRoundBody(round, prev, hint, instrument, audioB64);
+  const body = buildRoundBody(round, prev, hint, instrument, audioB64, lyrics);
   const res = await fetch("/api/round", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

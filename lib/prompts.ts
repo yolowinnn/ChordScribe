@@ -67,11 +67,20 @@ ${INSTRUMENT_GUIDE[instrument]}
 严格只输出 JSON。`;
 }
 
+function lyricsBlock(lyrics: string): string {
+  if (!lyrics || !lyrics.trim()) return "";
+  return `\n【官方歌词】（权威文本，必须严格使用这些歌词原文做和弦对位，**不要自己听写或改写歌词**；忽略其中的制作信息行，如 作词/作曲/编曲/演唱/各乐器等）：
+"""
+${lyrics.trim()}
+"""\n`;
+}
+
 export function userPrompt(
   round: number,
   prev: TabState | null,
   hint: string,
-  instrument: InstrumentId
+  instrument: InstrumentId,
+  lyrics: string = ""
 ): string {
   const ins = getInstrument(instrument);
   if (round === 1 || !prev) {
@@ -80,7 +89,7 @@ export function userPrompt(
 2. 确定完整曲式 structure（按时间顺序）。
 3. 为每个段落给出初步内容（见下方该乐器的重点字段），不确定处后续轮次再修。
 4. confidence 给保守值，done=false。
-${hint ? `\n歌曲信息：${hint}\n` : ""}
+${hint ? `\n歌曲信息：${hint}\n` : ""}${lyricsBlock(lyrics)}
 ${SCHEMA_HINT}`;
   }
   return `这是第 ${round} 轮转译（${ins.label} 精修轮）。下面是上一轮结果，请再次聆听音频，逐段核对、修正、补全：
@@ -90,7 +99,7 @@ ${SCHEMA_HINT}`;
 
 上一轮结果：
 ${JSON.stringify(prev)}
-
+${lyricsBlock(lyrics)}
 ${SCHEMA_HINT}`;
 }
 
@@ -100,7 +109,8 @@ export function buildRoundBody(
   prev: TabState | null,
   hint: string,
   instrument: InstrumentId,
-  audioB64: string
+  audioB64: string,
+  lyrics: string = ""
 ) {
   return {
     systemInstruction: { parts: [{ text: systemPrompt(instrument) }] },
@@ -108,7 +118,7 @@ export function buildRoundBody(
       {
         role: "user",
         parts: [
-          { text: userPrompt(round, prev, hint, instrument) },
+          { text: userPrompt(round, prev, hint, instrument, lyrics) },
           { inlineData: { mimeType: "audio/mpeg", data: audioB64 } },
         ],
       },

@@ -5,12 +5,14 @@ import { SongCandidate, TabState } from "@/lib/types";
 import { INSTRUMENTS, InstrumentId, getInstrument } from "@/lib/instruments";
 import { useAuth } from "@/lib/auth";
 import { useLibrary, SavedTab, tabId } from "@/lib/library";
-import { searchSongs, fetchAudioB64, runRound } from "@/lib/api";
+import { searchSongs, fetchAudioB64, fetchLyrics, runRound } from "@/lib/api";
 import TabView from "@/components/TabView";
 import AuthModal from "@/components/AuthModal";
 import AutoScroll from "@/components/AutoScroll";
+import Tuner from "@/components/Tuner";
 
 const MAX_ROUNDS = 5;
+const EXAMPLES = ["苏紫旭 十八年后", "陈鸿宇 理想三旬", "赵雷 成都", "朴树 平凡之路"];
 
 interface RoundLog {
   round: number;
@@ -43,6 +45,7 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAuth, setShowAuth] = useState(false);
+  const [showTuner, setShowTuner] = useState(false);
   const [menu, setMenu] = useState(false);
   const [libFilter, setLibFilter] = useState<InstrumentId | "all">("all");
 
@@ -98,7 +101,10 @@ export default function Home() {
     const hint = `${song.artists} - ${song.name}`;
     try {
       setPhase("audio");
-      const audioB64 = await fetchAudioB64(song.id);
+      const [audioB64, lyrics] = await Promise.all([
+        fetchAudioB64(song.id),
+        fetchLyrics(song.id),
+      ]);
       setPhase("rounds");
 
       let prev: TabState | null = null;
@@ -109,7 +115,7 @@ export default function Home() {
           ...l.map((x) => ({ ...x, status: "done" as const })),
           { round, status: "active" },
         ]);
-        const state = await runRound(round, prev, hint, instrument, audioB64);
+        const state = await runRound(round, prev, hint, instrument, audioB64, lyrics);
         prev = state;
         setTab(state);
         setLogs((l) =>
@@ -167,6 +173,7 @@ export default function Home() {
           <button className={`navlink ${view === "library" || view === "detail" ? "active" : ""}`} onClick={() => setView("library")}>
             我的谱库{tabs.length > 0 && <span className="badge">{tabs.length}</span>}
           </button>
+          <button className="navlink" onClick={() => setShowTuner(true)} title="调音器">🎵 调音器</button>
           {ready && user ? (
             <div style={{ position: "relative" }}>
               <div className="user-chip" onClick={() => setMenu((m) => !m)}>
@@ -193,44 +200,35 @@ export default function Home() {
         <>
           {!selected && (
             <>
-              <div className="hero">
-                <div className="eyebrow"><span>{ins.emoji}</span> Gemini 2.5 Pro 多模态 · 听音频扒谱</div>
+              <div className="hero hero-sm">
+                <div className="eyebrow"><span>{ins.emoji}</span> Gemini 2.5 Pro 多模态 · 听音频扒谱 · 官方歌词</div>
                 <h1>把任何歌，变成 <span className="grad">你能弹的谱子</span></h1>
-                <p>选乐器 → 说出歌手歌名，AI 自动找原曲、聆听完整音频、循环多轮转译，扒出{ins.tagline} —— 解析一次，永久存进谱库。</p>
               </div>
 
-              <div className="section-label">① 选择乐器</div>
-              <div className="inst-grid">
-                {INSTRUMENTS.filter((i) => i.primary).map((i) => (
-                  <div key={i.id} className={`inst-card ${instrument === i.id ? "active" : ""}`} style={{ ["--ic" as any]: i.accent }} onClick={() => setInstrument(i.id)}>
-                    <div className="iglow" />
-                    <div className="icheck">✓</div>
-                    <div className="iemoji">{i.emoji}</div>
-                    <div className="ilabel">{i.label}</div>
-                    <div className="iname">{i.en}</div>
-                    <div className="itag">{i.tagline}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="inst-sub">弦乐（试验）</div>
-              <div className="inst-grid">
-                {INSTRUMENTS.filter((i) => !i.primary).map((i) => (
-                  <div key={i.id} className={`inst-card ${instrument === i.id ? "active" : ""}`} style={{ ["--ic" as any]: i.accent }} onClick={() => setInstrument(i.id)}>
-                    <div className="iglow" />
-                    <div className="icheck">✓</div>
-                    <div className="iemoji">{i.emoji}</div>
-                    <div className="ilabel">{i.label}</div>
-                    <div className="iname">{i.en}</div>
-                    <div className="itag">{i.tagline}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="section-label" style={{ marginTop: 28 }}>② 搜索歌曲</div>
-              <div className="searchbar">
-                <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !busy && search()} placeholder="例如：苏紫旭 十八年后" disabled={busy} />
+              {/* 搜索置顶，一眼可见 */}
+              <div className="searchbar searchbar-hero">
+                <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && !busy && search()} placeholder="搜歌手 + 歌名，例如：苏紫旭 十八年后" disabled={busy} autoFocus />
                 <button className="btn btn-primary" onClick={() => search()} disabled={busy || !query.trim()}>{busy ? "搜索中…" : `扒 ${ins.label}谱`}</button>
               </div>
+
+              {/* 乐器选择：紧凑横排 */}
+              <div className="inst-pills">
+                {INSTRUMENTS.map((i) => (
+                  <button key={i.id} className={`inst-pill ${instrument === i.id ? "active" : ""}`} style={{ ["--ic" as any]: i.accent }} onClick={() => setInstrument(i.id)}>
+                    <span className="ip-emoji">{i.emoji}</span>{i.label}
+                    {!i.primary && <span className="ip-exp">试验</span>}
+                  </button>
+                ))}
+              </div>
+              <div className="inst-tagline">当前：{ins.emoji} {ins.label} —— {ins.tagline}</div>
+
+              {!!EXAMPLES.length && (
+                <div className="chips">
+                  {EXAMPLES.map((ex) => (
+                    <button key={ex} className="chip" onClick={() => search(ex)} disabled={busy}>{ex}</button>
+                  ))}
+                </div>
+              )}
             </>
           )}
 
@@ -379,6 +377,7 @@ export default function Home() {
       </div>
 
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+      {showTuner && <Tuner onClose={() => setShowTuner(false)} />}
       {tab && view !== "library" && <AutoScroll />}
     </div>
   );

@@ -283,6 +283,25 @@ h1, h2, h3, .display { font-family: var(--font-display), var(--font-body), sans-
 
 /* ---------- tuner ---------- */
 .modal.tuner { max-width: 460px; }
+.tuner-mode { display: flex; gap: 8px; margin-bottom: 14px; }
+.tm-btn { flex: 1; padding: 10px; border-radius: 11px; border: 1px solid var(--border); background: var(--panel); color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .15s; }
+.tm-btn:hover { color: var(--text); }
+.tm-btn.active { color: #0a0a0f; background: linear-gradient(135deg, var(--amber), #ec8f3c); border-color: var(--amber); }
+
+.meter { background: var(--panel-2); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-bottom: 16px; text-align: center; }
+.meter-err { color: var(--rose); font-size: 13px; margin-bottom: 10px; }
+.meter-note { font-size: 48px; font-weight: 700; font-family: var(--font-display); line-height: 1; color: var(--text); }
+.meter-note.ok { color: var(--teal); }
+.meter-target { font-size: 13px; color: var(--muted); margin: 6px 0 16px; }
+.meter-bar { display: flex; align-items: center; gap: 10px; }
+.mb-tick { font-size: 11px; color: var(--faint); white-space: nowrap; }
+.mb-track { position: relative; flex: 1; height: 10px; border-radius: 6px; background: linear-gradient(90deg, rgba(251,113,133,.35), rgba(255,255,255,.08) 50%, rgba(251,113,133,.35)); }
+.mb-center { position: absolute; left: 50%; top: -4px; bottom: -4px; width: 2px; background: var(--teal); transform: translateX(-50%); }
+.mb-needle { position: absolute; top: -6px; width: 4px; height: 22px; border-radius: 3px; background: var(--amber); transform: translateX(-50%); transition: left .08s linear; box-shadow: 0 0 8px var(--amber); }
+.mb-needle.ok { background: var(--teal); box-shadow: 0 0 10px var(--teal); }
+.meter-status { margin-top: 14px; font-size: 15px; font-weight: 700; color: var(--amber-soft); }
+.meter-status.ok { color: var(--teal); }
+
 .tuner-tabs { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 18px; }
 .tuner-tab { padding: 7px 13px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--muted); font-size: 13px; cursor: pointer; font-family: inherit; }
 .tuner-tab:hover { color: var(--text); }

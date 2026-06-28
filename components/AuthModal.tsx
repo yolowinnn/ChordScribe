@@ -118,7 +118,7 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="modal-foot">
-          复用你「IELTS_learning」同一套 Firebase 账号体系，登录即通用。
+          登录后，你扒过的吉他/贝斯/钢琴/尤克里里谱会永久存进云端谱库，换设备直接看。
         </div>
       </div>
     </div>

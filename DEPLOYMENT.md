@@ -44,32 +44,21 @@ Cloudflare → Workers & Pages → chordscribe → Settings → Build → Connec
 选 `yolowinnn/ChordScribe`，分支 `main`，构建命令 `npm run build`，输出目录 `out`。
 （需在控制台授权 GitHub，一次性。）
 
-## 三、独立 Firebase 项目（账户 + 谱库，需你创建一次）
+## 三、独立 Firebase 项目（✅ 已配置好，开箱即用）
 
-> 与雅思项目分开：**一个产品一个 Firebase 项目 / 一个数据库**，互不干扰。
-> 不配置也能用（自动降级为「仅本地保存」），配置后才有登录 + 云端跨设备同步。
+> 与雅思项目**完全分开**：独立项目 `chordscribe-e1603`（账号 `ljw2556826312@gmail.com`）。
+> 登录 + 云端谱库已全部就绪并实测通过，无需再操作。
 
-1. https://console.firebase.google.com → 新建项目，如 `chordscribe`（免费 Spark，一个 Google 账号可建多个项目）。
-2. Authentication → 开启 **Google** 和 **Email/Password** 登录方式。
-3. Authentication → Settings → Authorized domains → 添加 `chordscribe.pages.dev`（Google 登录需要）。
-4. Firestore Database → 创建（生产模式）→ 规则加：
-   ```
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{db}/documents {
-       match /chordscribe/{uid} {
-         allow read, write: if request.auth != null && request.auth.uid == uid;
-       }
-     }
-   }
-   ```
-5. 项目设置 → 你的应用 → 添加 Web 应用，拿到 firebaseConfig，把 6 个值填到 GitHub Secrets：
-   `NEXT_PUBLIC_FIREBASE_API_KEY` / `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` /
-   `NEXT_PUBLIC_FIREBASE_PROJECT_ID` / `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` /
-   `NEXT_PUBLIC_FIREBASE_SENDER_ID` / `NEXT_PUBLIC_FIREBASE_APP_ID`
-6. 重新触发部署（push 或 Actions 手动运行）。完成后登录 + 云端谱库即生效。
+已完成（均已验证）：
+- **项目**：`chordscribe-e1603`，Web 应用 `chordscribe-web` 已创建。
+- **登录方式**：Google ✅、Email/Password ✅ 均已启用（实测可注册/登录）。
+- **授权域名**：已含 `chordscribe.pages.dev`、`chordscribe-lake.vercel.app`、localhost。
+- **Firestore**：`(default)` 数据库已创建（nam5 多区域），安全规则 `firestore.rules` 已部署
+  （`chordscribe/{uid}` 仅本人可读写，实测他人写入返回 403）。
+- **Web 配置**：公开配置（apiKey 非密钥）已硬编码进 `lib/firebase.ts` 默认值，
+  CI/本地构建无需额外 secret 即生效；仍可用 `NEXT_PUBLIC_FIREBASE_*` 覆盖。
 
-本地开发时把同样的值写进 `.env.local`（已 gitignore）。
+Firestore 规则改动后重新部署：`npx firebase-tools deploy --only firestore:rules --project chordscribe-e1603`。
 
 ## 四、环境变量一览
 

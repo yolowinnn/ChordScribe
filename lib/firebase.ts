@@ -11,13 +11,16 @@ import { getFirestore, Firestore } from "firebase/firestore";
  * value, not a secret). When unset, the app runs in local-only mode (tabs are
  * saved in the browser; login/cloud-sync are disabled) and never crashes.
  */
+// Dedicated ChordScribe Firebase project `chordscribe-e1603` (separate from the
+// IELTS app). These are public client values (apiKey is not a secret); access is
+// secured by Firestore rules + authorized domains. Overridable via env.
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_SENDER_ID || "",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyDD-cmQNNpeMjkxSGM-wJToVyWQEWSEOz8",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "chordscribe-e1603.firebaseapp.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "chordscribe-e1603",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "chordscribe-e1603.firebasestorage.app",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_SENDER_ID || "108749068894",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:108749068894:web:617f60affd1c083ac272cf",
 };
 
 export function firebaseConfigured(): boolean {

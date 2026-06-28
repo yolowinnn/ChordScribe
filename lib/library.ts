@@ -15,10 +15,54 @@ export interface SavedTab {
   rounds: number;
   createdAt: number;
   updatedAt: number;
+  creatorName?: string; // 谁解析的（共享库归属）
 }
 
 export function tabId(instrument: InstrumentId, songId: number) {
   return `${instrument}:${songId}`;
+}
+
+export function displayNameOf(user: User | null): string {
+  if (!user) return "匿名";
+  return user.displayName || (user.email ? user.email.split("@")[0] : "匿名");
+}
+
+/* ---------- 共享云端谱库（任何人解析都充实公共库，省 token） ---------- */
+export interface SharedTab {
+  instrument: InstrumentId;
+  song: SongCandidate;
+  state: TabState;
+  rounds: number;
+  creatorUid: string;
+  creatorName: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** 读共享库（公开可读）；没有则返回 null。 */
+export async function getSharedTab(
+  instrument: InstrumentId,
+  songId: number
+): Promise<SharedTab | null> {
+  const db = firebaseDb();
+  if (!db) return null;
+  try {
+    const snap = await getDoc(doc(db, "sharedTabs", tabId(instrument, songId)));
+    return snap.exists() ? (snap.data() as SharedTab) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 写共享库（需登录）；失败静默（降级为仅本地）。 */
+export async function putSharedTab(rec: SharedTab): Promise<void> {
+  const db = firebaseDb();
+  if (!db) return;
+  try {
+    await setDoc(doc(db, "sharedTabs", tabId(rec.instrument, rec.song.id)), rec);
+  } catch (e) {
+    console.warn("shared tab write failed:", e);
+  }
 }
 
 type TabMap = Record<string, SavedTab>;
@@ -127,7 +171,8 @@ export function useLibrary(user: User | null) {
       song: SongCandidate,
       state: TabState,
       rounds: number,
-      instrument: InstrumentId
+      instrument: InstrumentId,
+      creatorName?: string
     ) => {
       setMap((prev) => {
         const id = tabId(instrument, song.id);
@@ -140,6 +185,7 @@ export function useLibrary(user: User | null) {
           rounds,
           createdAt: prev[id]?.createdAt || now,
           updatedAt: now,
+          creatorName: creatorName || prev[id]?.creatorName,
         };
         const next = { ...prev, [id]: rec };
         saveLocal(next);

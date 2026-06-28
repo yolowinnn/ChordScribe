@@ -4,7 +4,7 @@ import { useState } from "react";
 import { SongCandidate, TabState } from "@/lib/types";
 import { INSTRUMENTS, InstrumentId, getInstrument } from "@/lib/instruments";
 import { useAuth } from "@/lib/auth";
-import { useLibrary, SavedTab, tabId } from "@/lib/library";
+import { useLibrary, SavedTab, tabId, getSharedTab, putSharedTab, displayNameOf } from "@/lib/library";
 import { searchSongs, fetchAudioB64, fetchLyrics, runRound } from "@/lib/api";
 import TabView from "@/components/TabView";
 import AuthModal from "@/components/AuthModal";
@@ -42,6 +42,8 @@ export default function Home() {
   const [logs, setLogs] = useState<RoundLog[]>([]);
   const [tab, setTab] = useState<TabState | null>(null);
   const [fromLibrary, setFromLibrary] = useState(false);
+  const [source, setSource] = useState<"own" | "shared" | "fresh">("fresh");
+  const [creator, setCreator] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAuth, setShowAuth] = useState(false);
@@ -80,26 +82,43 @@ export default function Home() {
   }
 
   async function pick(song: SongCandidate, forceRedo = false) {
-    const existing = getTab(tabId(instrument, song.id));
-    if (existing && !forceRedo) {
-      setSelected(song);
-      setCandidates([]);
-      setTab(existing.state);
-      setFromLibrary(true);
-      setLogs([]);
-      setError(null);
-      setPhase("idle");
-      return;
-    }
     setSelected(song);
     setCandidates([]);
     setError(null);
     setTab(null);
-    setFromLibrary(false);
-    setBusy(true);
     setLogs([]);
-    const hint = `${song.artists} - ${song.name}`;
+    setPhase("idle");
+
+    // 1) 自己的本地谱库
+    const existing = getTab(tabId(instrument, song.id));
+    if (existing && !forceRedo) {
+      setTab(existing.state);
+      setFromLibrary(true);
+      setSource("own");
+      setCreator(existing.creatorName || "");
+      return;
+    }
+
+    setBusy(true);
     try {
+      // 2) 共享云端谱库 —— 命中则秒开，不再调用 Gemini（省 token）
+      if (!forceRedo) {
+        const shared = await getSharedTab(instrument, song.id);
+        if (shared) {
+          setTab(shared.state);
+          setFromLibrary(true);
+          setSource("shared");
+          setCreator(shared.creatorName || "");
+          if (user) saveTab(song, shared.state, shared.rounds, instrument, shared.creatorName);
+          setBusy(false);
+          return;
+        }
+      }
+
+      // 3) 都没有 → 用 Gemini 解析
+      setFromLibrary(false);
+      setSource("fresh");
+      const hint = `${song.artists} - ${song.name}`;
       setPhase("audio");
       const [audioB64, lyrics] = await Promise.all([
         fetchAudioB64(song.id),
@@ -127,7 +146,18 @@ export default function Home() {
         );
         if (state.done) break;
       }
-      if (prev) saveTab(song, prev, lastRound, instrument);
+      if (prev) {
+        const myName = displayNameOf(user);
+        setCreator(myName);
+        saveTab(song, prev, lastRound, instrument, myName);
+        if (user) {
+          putSharedTab({
+            instrument, song, state: prev, rounds: lastRound,
+            creatorUid: user.uid, creatorName: myName,
+            createdAt: Date.now(), updatedAt: Date.now(),
+          });
+        }
+      }
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -140,6 +170,8 @@ export default function Home() {
     setSelected(t.song);
     setTab(t.state);
     setFromLibrary(true);
+    setSource("own");
+    setCreator(t.creatorName || "");
     setLogs([]);
     setError(null);
     setView("detail");
@@ -300,12 +332,14 @@ export default function Home() {
 
           {tab && fromLibrary && selected && (
             <div className="tab-top" style={{ marginTop: 4 }}>
-              <span className="pill-saved" style={{ fontSize: 13 }}>📁 来自谱库 · 无需重新解析</span>
+              <span className="pill-saved" style={{ fontSize: 13 }}>
+                {source === "shared" ? `🌐 来自共享谱库${creator ? ` · 由 ${creator} 解析` : ""} · 无需重新解析` : "📁 来自谱库 · 无需重新解析"}
+              </span>
               <button className="btn btn-ghost" onClick={() => pick(selected, true)} disabled={busy}>重新解析</button>
             </div>
           )}
 
-          {tab && <TabView state={tab} />}
+          {tab && <TabView state={tab} creator={creator} />}
         </>
       )}
 
@@ -367,7 +401,7 @@ export default function Home() {
             <span className="pill-saved" style={{ fontSize: 13 }}>📁 来自谱库 · 无需重新解析</span>
             <button className="btn btn-ghost" onClick={() => { setView("create"); pick(selected, true); }}>重新解析</button>
           </div>
-          <TabView state={tab} />
+          <TabView state={tab} creator={creator} />
         </>
       )}
 

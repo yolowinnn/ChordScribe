@@ -333,6 +333,13 @@ h1, h2, h3, .display { font-family: var(--font-display), var(--font-body), sans-
 .fchip.active { color: #0a0a0f; background: var(--amber); border-color: var(--amber); font-weight: 600; }
 .lib-card .ibadge { position: absolute; top: 14px; right: 14px; font-size: 18px; }
 
+/* ---------- creator credit ---------- */
+.tab-credit {
+  text-align: center; font-size: 13px; color: var(--muted); margin: 18px 0 4px;
+  padding: 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+}
+.tab-credit b { color: var(--amber-soft); font-weight: 700; }
+
 /* ---------- chord diagrams ---------- */
 .chordchart { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 14px; }
 .cc-head { font-size: 13px; color: var(--faint); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 14px; }

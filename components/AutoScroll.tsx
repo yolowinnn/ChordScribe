@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const SPEEDS = [18, 30, 45, 65, 90]; // px/s 档位
-const LABELS = ["0.5×", "1×", "1.5×", "2×", "3×"];
+// px/s 档位 —— 整体调慢，最慢 0.25× 适合慢歌边弹边看
+const SPEEDS = [4, 7, 11, 16, 24, 36, 52];
+const LABELS = ["0.25×", "0.5×", "0.75×", "1×", "1.5×", "2×", "3×"];
 
 export default function AutoScroll() {
   const [playing, setPlaying] = useState(false);

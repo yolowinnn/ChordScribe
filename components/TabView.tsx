@@ -52,7 +52,7 @@ function renderLine(line: TabLine, idx: number) {
   );
 }
 
-export default function TabView({ state }: { state: TabState }) {
+export default function TabView({ state, creator }: { state: TabState; creator?: string }) {
   const m = state.meta;
   const ins = getInstrument(m.instrument);
   const isChord = ins.family === "chord";
@@ -130,6 +130,10 @@ export default function TabView({ state }: { state: TabState }) {
           {sec.notes && <div className="sec-notes">💡 {sec.notes}</div>}
         </div>
       ))}
+
+      <div className="tab-credit">
+        🎼 由 <b>{creator || "匿名"}</b> 用 AI 解析 · 已收录进共享谱库
+      </div>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { useLibrary, SavedTab, tabId } from "@/lib/library";
 import { searchSongs, fetchAudioB64, runRound } from "@/lib/api";
 import TabView from "@/components/TabView";
 import AuthModal from "@/components/AuthModal";
+import AutoScroll from "@/components/AutoScroll";
 
 const MAX_ROUNDS = 5;
 
@@ -378,6 +379,7 @@ export default function Home() {
       </div>
 
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+      {tab && view !== "library" && <AutoScroll />}
     </div>
   );
 }

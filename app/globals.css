@@ -296,6 +296,38 @@ h1, h2, h3, .display { font-family: var(--font-display), var(--font-body), sans-
 .fchip.active { color: #0a0a0f; background: var(--amber); border-color: var(--amber); font-weight: 600; }
 .lib-card .ibadge { position: absolute; top: 14px; right: 14px; font-size: 18px; }
 
+/* ---------- chord diagrams ---------- */
+.chordchart { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 14px; }
+.cc-head { font-size: 13px; color: var(--faint); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 14px; }
+.cd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 14px 10px; }
+.chorddiagram { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.chorddiagram .cd-art { display: flex; align-items: flex-end; justify-content: center; min-height: 52px; }
+.chorddiagram .cd-name { font-size: 12.5px; font-weight: 700; color: var(--chord); font-family: var(--font-display); }
+.cd-none { font-size: 10px; color: var(--faint); border: 1px dashed var(--border); border-radius: 6px; padding: 14px 8px; }
+
+/* ---------- auto-scroll bar ---------- */
+.autoscroll {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 22px; z-index: 60;
+  display: flex; align-items: center; gap: 6px; padding: 6px;
+  background: rgba(20,21,29,.86); backdrop-filter: blur(14px);
+  border: 1px solid var(--border-strong); border-radius: 999px;
+  box-shadow: 0 16px 40px -12px rgba(0,0,0,.7);
+}
+.as-play {
+  display: flex; align-items: center; gap: 7px; border: none; cursor: pointer;
+  background: linear-gradient(135deg, var(--amber), #ec8f3c); color: #1a1206;
+  font-weight: 700; font-size: 13.5px; padding: 9px 16px; border-radius: 999px; font-family: inherit;
+}
+.as-play:hover { filter: brightness(1.06); }
+.as-speed { display: flex; align-items: center; gap: 2px; padding: 0 4px; }
+.as-speed button {
+  width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border);
+  background: var(--panel-2); color: var(--text); font-size: 16px; cursor: pointer; line-height: 1; font-family: inherit;
+}
+.as-speed button:disabled { opacity: .35; cursor: not-allowed; }
+.as-speed button:hover:not(:disabled) { border-color: var(--border-strong); }
+.as-label { min-width: 34px; text-align: center; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
 /* ---------- back link + footer ---------- */
 .backlink { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 14px; cursor: pointer; margin: 6px 0 16px; background: none; border: none; font-family: inherit; }
 .backlink:hover { color: var(--text); }

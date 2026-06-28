@@ -1,5 +1,24 @@
 import { TabLine, TabState } from "@/lib/types";
 import { getInstrument } from "@/lib/instruments";
+import ChordDiagram from "./ChordDiagram";
+
+function uniqueChords(state: TabState): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const sec of state.sections || []) {
+    for (const c of sec.progression || []) {
+      const k = (c || "").trim();
+      if (k && !seen.has(k)) { seen.add(k); out.push(k); }
+    }
+    for (const ln of sec.lines || []) {
+      for (const ch of ln.chords || []) {
+        const k = (ch.chord || "").trim();
+        if (k && !seen.has(k)) { seen.add(k); out.push(k); }
+      }
+    }
+  }
+  return out;
+}
 
 function renderLine(line: TabLine, idx: number) {
   const lyric = line.lyric ?? "";
@@ -37,6 +56,8 @@ export default function TabView({ state }: { state: TabState }) {
   const m = state.meta;
   const ins = getInstrument(m.instrument);
   const isChord = ins.family === "chord";
+  const showDiagrams = m.instrument === "guitar" || m.instrument === "ukulele" || m.instrument === "piano";
+  const chords = showDiagrams ? uniqueChords(state) : [];
   const pills: [string, string][] = [
     ["乐器", `${ins.emoji} ${ins.label}`],
     ["调性", m.key],
@@ -63,6 +84,17 @@ export default function TabView({ state }: { state: TabState }) {
           ))}
         </div>
       </div>
+
+      {chords.length > 0 && (
+        <div className="chordchart">
+          <div className="cc-head">和弦图 · {ins.label}</div>
+          <div className="cd-grid">
+            {chords.map((c) => (
+              <ChordDiagram key={c} name={c} instrument={m.instrument} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {state.sections?.map((sec, i) => (
         <div className="section-card" key={i}>

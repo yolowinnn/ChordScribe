@@ -19,7 +19,19 @@ const SPOOF = {
   "X-Forwarded-For": CN_IP,
 };
 
-export const config = { maxDuration: 30 };
+export const config = { maxDuration: 20 };
+
+// 带超时的 fetch：慢/不通的 CDN 节点快速中止，让前端立刻回退 iTunes，
+// 而不是干等到平台超时（30s）。
+async function fetchT(url, opts, ms) {
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), ms);
+  try {
+    return await fetch(url, { ...opts, signal: ac.signal });
+  } finally {
+    clearTimeout(t);
+  }
+}
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -35,13 +47,14 @@ export default async function handler(req, res) {
     const outer = `https://music.163.com/song/media/outer/url?id=${encodeURIComponent(
       id
     )}.mp3`;
-    const r1 = await fetch(outer, { headers: SPOOF, redirect: "manual" });
+    const r1 = await fetchT(outer, { headers: SPOOF, redirect: "manual" }, 6000);
     const loc = r1.headers.get("location") || "";
     // 会员/版权锁曲 → 302 指向 music.163.com/404
     if (!loc || /\/404(\b|$)/.test(loc)) return unavailable();
 
     const cdn = loc.replace(/^http:\/\//i, "https://");
-    const r2 = await fetch(cdn, { headers: SPOOF });
+    // 整段（含 5MB 下载）限时 12s：慢节点中止 → 前端回退 iTunes
+    const r2 = await fetchT(cdn, { headers: SPOOF }, 12000);
     const ct = r2.headers.get("content-type") || "";
     const len = Number(r2.headers.get("content-length") || "0");
     if (!r2.ok || (!ct.includes("audio") && len < 100000)) return unavailable();
@@ -51,6 +64,7 @@ export default async function handler(req, res) {
     res.setHeader("Cache-Control", "public, max-age=86400");
     return res.status(200).send(buf);
   } catch (e) {
-    return res.status(502).json({ error: "音频回源失败: " + String((e && e.message) || e) });
+    // 超时/中止/回源失败一律当"取不到" → 前端走 iTunes 兜底
+    return unavailable();
   }
 }

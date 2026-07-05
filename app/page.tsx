@@ -120,10 +120,15 @@ export default function Home() {
       setSource("fresh");
       const hint = `${song.artists} - ${song.name}`;
       setPhase("audio");
-      const [audioB64, lyrics] = await Promise.all([
-        fetchAudioB64(song.id),
+      const [audio, lyrics] = await Promise.all([
+        fetchAudioB64(song.id, song.name, song.artists),
         fetchLyrics(song.id),
       ]);
+      if (audio.source === "itunes") {
+        setError(
+          `网易云该曲受会员/版权限制，已改用 iTunes 免费试听片段（约 ${audio.seconds ?? 30} 秒）扒谱：可得调性、和弦进行与节奏型，但只覆盖片段、非整首结构。`
+        );
+      }
       setPhase("rounds");
 
       let prev: TabState | null = null;
@@ -134,7 +139,7 @@ export default function Home() {
           ...l.map((x) => ({ ...x, status: "done" as const })),
           { round, status: "active" },
         ]);
-        const state = await runRound(round, prev, hint, instrument, audioB64, lyrics);
+        const state = await runRound(round, prev, hint, instrument, audio.b64, lyrics, audio.mime);
         prev = state;
         setTab(state);
         setLogs((l) =>

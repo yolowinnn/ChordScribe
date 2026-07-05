@@ -23,18 +23,82 @@ export async function fetchLyrics(songId: number): Promise<string> {
   }
 }
 
-/** Fetch the original audio via the CF proxy and base64-encode it in-browser. */
-export async function fetchAudioB64(songId: number): Promise<string> {
+export interface AudioResult {
+  b64: string;
+  mime: string; // Gemini inlineData mimeType
+  source: "netease" | "itunes";
+  seconds?: number; // 片段时长（iTunes 试听约 30s）
+}
+
+/** iTunes Search API 走 JSONP（该接口不带 CORS 头，但支持 &callback=）。 */
+function itunesSearch(term: string): Promise<any[]> {
+  return new Promise((resolve) => {
+    if (typeof document === "undefined") return resolve([]);
+    const cb = `__itunes_cb_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
+    const script = document.createElement("script");
+    const done = (results: any[]) => {
+      clearTimeout(timer);
+      try {
+        delete (window as any)[cb];
+      } catch {}
+      script.remove();
+      resolve(results);
+    };
+    const timer = setTimeout(() => done([]), 8000);
+    (window as any)[cb] = (data: any) => done(data?.results || []);
+    script.onerror = () => done([]);
+    script.src =
+      `https://itunes.apple.com/search?media=music&limit=5&country=CN` +
+      `&term=${encodeURIComponent(term)}&callback=${cb}`;
+    document.body.appendChild(script);
+  });
+}
+
+/** iTunes 免费试听兜底：网易云会员锁的歌，用 Apple 30s 试听片段扒谱。 */
+async function fetchItunesPreview(
+  name: string,
+  artist: string
+): Promise<AudioResult | null> {
+  const results = await itunesSearch(`${name} ${artist}`.trim());
+  const hit = results.find((r) => r?.previewUrl) || null;
+  if (!hit?.previewUrl) return null;
+  const a = await fetch(hit.previewUrl); // 试听音频带 access-control-allow-origin: *
+  if (!a.ok) return null;
+  const buf = await a.arrayBuffer();
+  return {
+    b64: arrayBufferToBase64(buf),
+    mime: "audio/mp4", // Apple 试听是 m4a(AAC)，Gemini 用 audio/mp4 可读
+    source: "itunes",
+    seconds: Math.round((hit.trackTimeMillis ? 30000 : 30000) / 1000),
+  };
+}
+
+/**
+ * 取原曲音频并 base64。优先网易云完整音源；若被会员/版权限制取不到，
+ * 自动回退到 iTunes 免费试听片段（约 30s，免费、无会员墙）。
+ */
+export async function fetchAudioB64(
+  songId: number,
+  name?: string,
+  artist?: string
+): Promise<AudioResult> {
   const res = await fetch(`/api/audio?id=${songId}`);
-  if (!res.ok) {
-    let msg = "无法获取音频";
-    try {
-      msg = (await res.json()).error || msg;
-    } catch {}
-    throw new Error(msg);
+  if (res.ok) {
+    const buf = await res.arrayBuffer();
+    return { b64: arrayBufferToBase64(buf), mime: "audio/mpeg", source: "netease" };
   }
-  const buf = await res.arrayBuffer();
-  return arrayBufferToBase64(buf);
+  // 网易云取不到（多为 fee=1 会员歌）→ iTunes 免费试听兜底
+  if (name) {
+    try {
+      const it = await fetchItunesPreview(name, artist || "");
+      if (it) return it;
+    } catch {}
+  }
+  let msg = "无法获取音频（网易云受限，且未找到 iTunes 免费试听）";
+  try {
+    msg = (await res.json()).error || msg;
+  } catch {}
+  throw new Error(msg);
 }
 
 function arrayBufferToBase64(buf: ArrayBuffer): string {
@@ -57,9 +121,10 @@ export async function runRound(
   hint: string,
   instrument: InstrumentId,
   audioB64: string,
-  lyrics: string
+  lyrics: string,
+  mime: string = "audio/mpeg"
 ): Promise<TabState> {
-  const body = buildRoundBody(round, prev, hint, instrument, audioB64, lyrics);
+  const body = buildRoundBody(round, prev, hint, instrument, audioB64, lyrics, mime);
   const res = await fetch("/api/round", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

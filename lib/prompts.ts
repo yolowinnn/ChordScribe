@@ -110,7 +110,8 @@ export function buildRoundBody(
   hint: string,
   instrument: InstrumentId,
   audioB64: string,
-  lyrics: string = ""
+  lyrics: string = "",
+  mime: string = "audio/mpeg"
 ) {
   return {
     systemInstruction: { parts: [{ text: systemPrompt(instrument) }] },
@@ -119,7 +120,7 @@ export function buildRoundBody(
         role: "user",
         parts: [
           { text: userPrompt(round, prev, hint, instrument, lyrics) },
-          { inlineData: { mimeType: "audio/mpeg", data: audioB64 } },
+          { inlineData: { mimeType: mime, data: audioB64 } },
         ],
       },
     ],

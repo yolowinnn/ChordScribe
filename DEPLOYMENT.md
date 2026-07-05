@@ -6,6 +6,8 @@
 - GitHub 仓库（个人）: https://github.com/yolowinnn/ChordScribe
   （推送用 `github-yolo` SSH 别名：`git@github-yolo:yolowinnn/ChordScribe.git`）
 - 旧 Vercel 部署（境外，备用）: https://chordscribe-lake.vercel.app
+  （Vercel 上没有 API，`vercel.json` 把 `/api/*` 反代到 chordscribe.pages.dev 的
+  Pages Functions；Vercel 项目已连 GitHub，push main 自动重建）
 
 ## 架构一句话
 

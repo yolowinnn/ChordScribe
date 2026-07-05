@@ -1,8 +1,7 @@
 {
   "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://chordscribe.pages.dev/api/:path*"
-    }
+    { "source": "/api/search", "destination": "https://chordscribe.pages.dev/api/search" },
+    { "source": "/api/lyrics", "destination": "https://chordscribe.pages.dev/api/lyrics" },
+    { "source": "/api/round", "destination": "https://chordscribe.pages.dev/api/round" }
   ]
 }

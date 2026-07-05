@@ -125,8 +125,14 @@ export function buildRoundBody(
     ],
     generationConfig: {
       temperature: 0.25,
-      maxOutputTokens: 65535,
+      // 16k 足够容纳整谱（实测单轮输出约 3k tokens）；封顶防跑飞。
+      maxOutputTokens: 16384,
       responseMimeType: "application/json",
+      // ★关键：gemini-2.5-pro 默认「思考」会烧掉数千 token（实测占了大头，
+      // 单轮 71s 直逼 Cloudflare ~100s 连接超时 → 前端收到纯文本
+      // "An error occurred" 而非 JSON）。封顶 512 后 71s→53s（留 ~45s 余量），
+      // 谱仍完整；后续 4 轮精修补回推理深度。
+      thinkingConfig: { thinkingBudget: 512 },
     },
   };
 }

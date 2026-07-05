@@ -21,17 +21,7 @@ const SPOOF = {
 
 export const config = { maxDuration: 20 };
 
-// 带超时的 fetch：慢/不通的 CDN 节点快速中止，让前端立刻回退 iTunes，
-// 而不是干等到平台超时（30s）。
-async function fetchT(url, opts, ms) {
-  const ac = new AbortController();
-  const t = setTimeout(() => ac.abort(), ms);
-  try {
-    return await fetch(url, { ...opts, signal: ac.signal });
-  } finally {
-    clearTimeout(t);
-  }
-}
+const TOTAL_BUDGET_MS = 14000; // 整个回源(外链+下载正文)总预算，超则中止→前端回退 iTunes
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -43,28 +33,33 @@ export default async function handler(req, res) {
       .status(404)
       .json({ error: "无法获取完整音频（可能受版权保护或需要会员）。请换一首。" });
 
+  // 单一中止器覆盖「外链 + CDN fetch + arrayBuffer 下载」全过程 —— 之前只护住
+  // 拿响应头、没护住 5MB 正文下载，慢节点在 arrayBuffer() 阶段仍干等到平台上限。
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), TOTAL_BUDGET_MS);
   try {
     const outer = `https://music.163.com/song/media/outer/url?id=${encodeURIComponent(
       id
     )}.mp3`;
-    const r1 = await fetchT(outer, { headers: SPOOF, redirect: "manual" }, 6000);
+    const r1 = await fetch(outer, { headers: SPOOF, redirect: "manual", signal: ac.signal });
     const loc = r1.headers.get("location") || "";
     // 会员/版权锁曲 → 302 指向 music.163.com/404
     if (!loc || /\/404(\b|$)/.test(loc)) return unavailable();
 
     const cdn = loc.replace(/^http:\/\//i, "https://");
-    // 整段（含 5MB 下载）限时 12s：慢节点中止 → 前端回退 iTunes
-    const r2 = await fetchT(cdn, { headers: SPOOF }, 12000);
+    const r2 = await fetch(cdn, { headers: SPOOF, signal: ac.signal });
     const ct = r2.headers.get("content-type") || "";
     const len = Number(r2.headers.get("content-length") || "0");
     if (!r2.ok || (!ct.includes("audio") && len < 100000)) return unavailable();
 
-    const buf = Buffer.from(await r2.arrayBuffer());
+    const buf = Buffer.from(await r2.arrayBuffer()); // 同一 signal，慢下载会被中止
     res.setHeader("Content-Type", "audio/mpeg");
     res.setHeader("Cache-Control", "public, max-age=86400");
     return res.status(200).send(buf);
   } catch (e) {
     // 超时/中止/回源失败一律当"取不到" → 前端走 iTunes 兜底
     return unavailable();
+  } finally {
+    clearTimeout(timer);
   }
 }

@@ -1,6 +1,7 @@
 import { TabLine, TabState } from "@/lib/types";
 import { getInstrument } from "@/lib/instruments";
 import ChordDiagram from "./ChordDiagram";
+import AudioPlayer from "./AudioPlayer";
 
 function uniqueChords(state: TabState): string[] {
   const seen = new Set<string>();
@@ -52,7 +53,7 @@ function renderLine(line: TabLine, idx: number) {
   );
 }
 
-export default function TabView({ state, creator }: { state: TabState; creator?: string }) {
+export default function TabView({ state, creator, songId }: { state: TabState; creator?: string; songId?: number }) {
   const m = state.meta;
   const ins = getInstrument(m.instrument);
   const isChord = ins.family === "chord";
@@ -84,6 +85,8 @@ export default function TabView({ state, creator }: { state: TabState; creator?:
           ))}
         </div>
       </div>
+
+      <AudioPlayer songId={songId} title={m.title} artist={m.artist} />
 
       {chords.length > 0 && (
         <div className="chordchart">

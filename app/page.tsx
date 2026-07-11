@@ -344,7 +344,7 @@ export default function Home() {
             </div>
           )}
 
-          {tab && <TabView state={tab} creator={creator} />}
+          {tab && <TabView state={tab} creator={creator} songId={selected?.id} />}
         </>
       )}
 
@@ -406,7 +406,7 @@ export default function Home() {
             <span className="pill-saved" style={{ fontSize: 13 }}>📁 来自谱库 · 无需重新解析</span>
             <button className="btn btn-ghost" onClick={() => { setView("create"); pick(selected, true); }}>重新解析</button>
           </div>
-          <TabView state={tab} creator={creator} />
+          <TabView state={tab} creator={creator} songId={selected?.id} />
         </>
       )}
 

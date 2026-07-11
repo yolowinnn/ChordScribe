@@ -54,6 +54,16 @@ function itunesSearch(term: string): Promise<any[]> {
   });
 }
 
+/** 取 iTunes 试听可直接播放的 URL（供播放器用；试听音频带 CORS *，<audio> 可直接放）。 */
+export async function itunesPreviewUrl(
+  name: string,
+  artist: string
+): Promise<string | null> {
+  const results = await itunesSearch(`${name} ${artist}`.trim());
+  const hit = results.find((r) => r?.previewUrl) || null;
+  return hit?.previewUrl || null;
+}
+
 /** iTunes 免费试听兜底：网易云会员锁的歌，用 Apple 30s 试听片段扒谱。 */
 async function fetchItunesPreview(
   name: string,

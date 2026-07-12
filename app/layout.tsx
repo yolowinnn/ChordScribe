@@ -26,6 +26,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN" className={`${display.variable} ${body.variable}`}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(/[?&]embed/.test(location.search)){document.documentElement.classList.add('embed')}}catch(e){}",
+          }}
+        />
+      </head>
       <body>
         <div className="bg-aura" aria-hidden />
         <AuthProvider>{children}</AuthProvider>

@@ -74,6 +74,9 @@ h1, h2, h3, .display { font-family: var(--font-display), var(--font-body), sans-
   padding: 22px 4px 18px; position: sticky; top: 0; z-index: 30;
   background: linear-gradient(180deg, var(--bg) 55%, transparent);
 }
+/* 内嵌 润 Hub (?embed=1)：隐藏冗余品牌，保留功能导航（扒谱/谱库/调音器） */
+html.embed .topbar .brand { display: none; }
+html.embed .topbar { justify-content: flex-start; padding-top: 12px; background: none; }
 .brand { display: flex; align-items: center; gap: 11px; cursor: pointer; }
 .brand .mark {
   width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;

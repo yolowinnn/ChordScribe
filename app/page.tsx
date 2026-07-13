@@ -155,6 +155,7 @@ export default function Home() {
         const myName = displayNameOf(user);
         setCreator(myName);
         saveTab(song, prev, lastRound, instrument, myName);
+        try { if (window.parent && window.parent !== window) window.parent.postMessage({ type: "run-points", points: 6, source: "chord" }, "*"); } catch (e) {}
         if (user) {
           putSharedTab({
             instrument, song, state: prev, rounds: lastRound,
